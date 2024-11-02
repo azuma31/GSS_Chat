@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #f8f9fa;
+            --border-color: #e1e4e8;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --danger-color: #dc3545;
+            --sent-message-bg: #e3f2fd;
+            --received-message-bg: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ログイン画面のスタイル */
+        #login-container {
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+            #login-container h2 {
+                color: var(--text-primary);
+                margin-bottom: 20px;
+                text-align: center;
+            }
+
+        #login-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* チャットインターフェースのスタイル */
+        #chat-interface {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #current-user {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        #chat-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f0f2f5;
+        }
+
+        .message {
+            max-width: 70%;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 12px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sent {
+            margin-left: auto;
+            background: var(--sent-message-bg);
+        }
+
+        .received {
+            margin-right: auto;
+            background: var(--received-message-bg);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .username {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .message-content {
+            color: var(--text-primary);
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            padding: 5px;
+        }
+
+        .message:hover .delete-btn {
+            opacity: 1;
+        }
+
+        #message-form {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+        }
+
+        input[type="text"] {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            input[type="text"]:focus {
+                border-color: var(--primary-color);
+            }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: var(--primary-color);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+            button:hover {
+                background-color: #1557b0;
+            }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+            .btn-secondary:hover {
+                background: #e8e9ea;
+            }
+
+        /* モーダルスタイル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div id="login-container">
+        <h2>チャットにログイン</h2>
+        <form id="login-form">
+            <input type="text" id="username-input" placeholder="ユーザー名を入力" required minlength="2" maxlength="20">
+            <button type="submit">参加する</button>
+        </form>
+    </div>
+
+    <!-- チャットインターフェース -->
+    <div id="chat-interface" class="app-container">
+        <div class="chat-header">
+            <div class="user-controls">
+                <span id="current-user"></span>
+                <button id="change-username-btn" class="btn-secondary">
+                    <i class="fas fa-user-edit"></i> 名前を変更
+                </button>
+            </div>
+        </div>
+        <div id="chat-container"></div>
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="メッセージを入力..." required>
+            <button type="submit">
+                <i class="fas fa-paper-plane"></i> 送信
+            </button>
+        </form>
+    </div>
+
+    <!-- ユーザー名変更モーダル -->
+    <div id="username-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>ユーザー名の変更</h3>
+            </div>
+            <form id="change-username-form">
+                <input type="text" id="new-username-input" placeholder="新しいユーザー名" required minlength="2" maxlength="20">
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancel-username-change">キャンセル</button>
+                    <button type="submit">変更する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzVMDyT5TQASHHiSoDlPY37xPUr4b9I_KGbIqBqqaYzijLgZQUtKc2uxdO6wVidkBuLoQ/exec';
+
+        const loginContainer = document.getElementById('login-container');
+        const chatInterface = document.getElementById('chat-interface');
+        const loginForm = document.getElementById('login-form');
+        const chatContainer = document.getElementById('chat-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const currentUserDisplay = document.getElementById('current-user');
+        const usernameModal = document.getElementById('username-modal');
+        const changeUsernameBtn = document.getElementById('change-username-btn');
+        const changeUsernameForm = document.getElementById('change-username-form');
+        const cancelUsernameChange = document.getElementById('cancel-username-change');
+
+        let currentUsername = '';
+        const displayedMessages = new Set();
+        let lastTimestamp = '';
+
+        // ユーザー名変更モーダルの制御
+        changeUsernameBtn.addEventListener('click', () => {
+            usernameModal.style.display = 'flex';
+            document.getElementById('new-username-input').value = currentUsername;
+        });
+
+        cancelUsernameChange.addEventListener('click', () => {
+            usernameModal.style.display = 'none';
+        });
+
+        changeUsernameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newUsername = document.getElementById('new-username-input').value.trim();
+            if (newUsername && newUsername !== currentUsername) {
+                currentUsername = newUsername;
+                localStorage.setItem('username', currentUsername);
+                currentUserDisplay.textContent = `${currentUsername}としてログイン中`;
+                usernameModal.style.display = 'none';
+            }
+        });
+
+        // ログインフォームの処理
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usernameInput = document.getElementById('username-input');
+            currentUsername = usernameInput.value.trim();
+            localStorage.setItem('username', currentUsername);
+            showChatInterface();
+        });
+
+        function showChatInterface() {
+            loginContainer.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            currentUserDisplay.textContent = `${currentUsername}としてログイン中`;
+            fetchMessages();
+        }
+
+        window.addEventListener('load', () => {
+            const savedUsername = localStorage.getItem('username');
+            if (savedUsername) {
+                currentUsername = savedUsername;
+                showChatInterface();
+            }
+        });
+
+        // メッセージ削除機能
+        async function deleteMessage(messageId, timestamp) {
+            try {
+                await fetch(`${SHEET_URL}?action=delete&timestamp=${timestamp}`, {
+                    method: 'DELETE',
+                    mode: 'no-cors'
+                });
+
+                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (messageElement) {
+                    messageElement.remove();
+                }
+            } catch (error) {
+                console.error('Error deleting message:', error);
+            }
+        }
+
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            const timestamp = new Date().toISOString();
+            const messageId = `${timestamp}-${currentUsername}-${message}`;
+
+            addMessageToUI(message, timestamp, currentUsername, 'sent', messageId);
+            messageInput.value = '';
+
+            try {
+                await fetch(SHEET_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        timestamp: timestamp,
+                        username: currentUsername
+                    })
+                });
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        });
+
+        function addMessageToUI(message, timestamp, username, type, messageId) {
+            if (displayedMessages.has(messageId)) {
+                return;
+            }
+
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', type);
+            messageElement.dataset.messageId = messageId;
+
+            const usernameElement = document.createElement('div');
+            usernameElement.classList.add('username');
+            usernameElement.textContent = username;
+
+            const messageContent = document.createElement('div');
+            messageContent.classList.add('message-content');
+            messageContent.textContent = message;
+
+            const timestampElement = document.createElement('div');
+            timestampElement.classList.add('timestamp');
+            timestampElement.textContent = new Date(timestamp).toLocaleString();
+
+            const deleteButton = document.createElement('button');
+            deleteButton.classList.add('delete-btn');
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteButton.onclick = () => deleteMessage(messageId, timestamp);
+
+            messageElement.appendChild(usernameElement);
+            messageElement.appendChild(messageContent);
+            messageElement.appendChild(timestampElement);
+            messageElement.appendChild(deleteButton);
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            displayedMessages.add(messageId);
+        }
+
+        async function fetchMessages() {
+            try {
+                const response = await fetch(SHEET_URL);
+                const messages = await response.json();
+
+                messages.forEach(msg => {
+                    if (msg.timestamp > lastTimestamp) {
+                        const messageId = `${msg.timestamp}-${msg.username}-${msg.message}`;
+                        addMessageToUI(
+                            msg.message,
+                            msg.timestamp,
+                            msg.username,
+                            msg.username === currentUsername ? 'sent' : 'received',
+                            messageId
+                        );
+                    }
+                });
+
+                if (messages.length > 0) {
+                    lastTimestamp = messages[messages.length - 1].timestamp;
+                }
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        }
+
+        setInterval(fetchMessages, 5000);
+    </script>
+</body>
+</html>
