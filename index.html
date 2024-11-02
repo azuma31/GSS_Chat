@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Googleスプレッドシートチャット</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #login-container, #chat-interface {
+            padding: 20px;
+        }
+
+        #chat-interface {
+            display: none;
+        }
+
+        #chat-container {
+            border: 1px solid #ccc;
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .sent {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+
+        .received {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+
+        #message-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #45a049;
+            }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .username {
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 5px;
+        }
+
+        #current-user {
+            text-align: right;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        #username-input {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Webチャット</h1>
+
+    <!-- ログイン画面 -->
+    <div id="login-container">
+        <h2>ユーザー名を入力してください</h2>
+        <form id="login-form">
+            <input type="text" id="username-input" placeholder="ユーザー名" required minlength="2" maxlength="20">
+            <button type="submit">チャットに参加</button>
+        </form>
+    </div>
+
+    <!-- チャットインターフェース -->
+    <div id="chat-interface">
+        <div id="current-user"></div>
+        <div id="chat-container"></div>
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="メッセージを入力..." required>
+            <button type="submit">送信</button>
+        </form>
+    </div>
+
+    <script>
+        // GoogleスプレッドシートのデプロイされたウェブアプリケーションのURL
+        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzco3OvWqwZqI0RXe0P_azBdWYLrK6MfPvuvU0PEggAYVdEcyQR84KaOt_b2hEX8dCw/exec';
+
+        const loginContainer = document.getElementById('login-container');
+        const chatInterface = document.getElementById('chat-interface');
+        const loginForm = document.getElementById('login-form');
+        const chatContainer = document.getElementById('chat-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const currentUserDisplay = document.getElementById('current-user');
+
+        let currentUsername = '';
+        const displayedMessages = new Set();
+        let lastTimestamp = '';
+
+        // ログインフォームの処理
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usernameInput = document.getElementById('username-input');
+            currentUsername = usernameInput.value.trim();
+
+            // ユーザー名を保存してチャットインターフェースを表示
+            localStorage.setItem('username', currentUsername);
+            showChatInterface();
+        });
+
+        // チャットインターフェースの表示
+        function showChatInterface() {
+            loginContainer.style.display = 'none';
+            chatInterface.style.display = 'block';
+            currentUserDisplay.textContent = `ログイン中: ${currentUsername}`;
+            // 初回メッセージ取得
+            fetchMessages();
+        }
+
+        // ページ読み込み時に保存されているユーザー名をチェック
+        window.addEventListener('load', () => {
+            const savedUsername = localStorage.getItem('username');
+            if (savedUsername) {
+                currentUsername = savedUsername;
+                showChatInterface();
+            }
+        });
+
+        // メッセージを送信
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            const timestamp = new Date().toISOString();
+            const messageId = `${timestamp}-${currentUsername}-${message}`;
+
+            // メッセージをUIに追加
+            addMessageToUI(message, timestamp, currentUsername, 'sent');
+            messageInput.value = '';
+
+            try {
+                // GoogleスプレッドシートにメッセージをPOST
+                const response = await fetch(SHEET_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        timestamp: timestamp,
+                        username: currentUsername
+                    })
+                });
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        });
+
+        // UIにメッセージを追加する関数
+        function addMessageToUI(message, timestamp, username, type) {
+            const messageId = `${timestamp}-${username}-${message}`;
+
+            // 既に表示済みのメッセージはスキップ
+            if (displayedMessages.has(messageId)) {
+                return;
+            }
+
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', type);
+
+            const usernameElement = document.createElement('div');
+            usernameElement.classList.add('username');
+            usernameElement.textContent = username;
+
+            const messageContent = document.createElement('div');
+            messageContent.textContent = message;
+
+            const timestampElement = document.createElement('div');
+            timestampElement.classList.add('timestamp');
+            timestampElement.textContent = new Date(timestamp).toLocaleString();
+
+            messageElement.appendChild(usernameElement);
+            messageElement.appendChild(messageContent);
+            messageElement.appendChild(timestampElement);
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // 表示済みメッセージとして記録
+            displayedMessages.add(messageId);
+        }
+
+        // メッセージを定期的に取得
+        async function fetchMessages() {
+            try {
+                const response = await fetch(SHEET_URL);
+                const messages = await response.json();
+
+                // 新しいメッセージのみを表示
+                messages.forEach(msg => {
+                    if (msg.timestamp > lastTimestamp) {
+                        addMessageToUI(msg.message, msg.timestamp, msg.username,
+                            msg.username === currentUsername ? 'sent' : 'received');
+                    }
+                });
+
+                // 最新のタイムスタンプを更新
+                if (messages.length > 0) {
+                    lastTimestamp = messages[messages.length - 1].timestamp;
+                }
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        }
+
+        // 5秒ごとにメッセージを取得
+        setInterval(fetchMessages, 3000);
+    </script>
+</body>
+</html>
