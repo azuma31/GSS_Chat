@@ -1,0 +1,707 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #f8f9fa;
+            --border-color: #e1e4e8;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --danger-color: #dc3545;
+            --sent-message-bg: #e3f2fd;
+            --received-message-bg: #ffffff;
+            --success-color: #28a745;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #login-container {
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+            #login-container h2 {
+                color: var(--text-primary);
+                margin-bottom: 20px;
+                text-align: center;
+            }
+
+        #login-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-interface {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #current-user {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        #chat-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f0f2f5;
+        }
+
+        .message {
+            max-width: 70%;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+            .message.fade-out {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+
+        .sent {
+            margin-left: auto;
+            background: var(--sent-message-bg);
+        }
+
+        .received {
+            margin-right: auto;
+            background: var(--received-message-bg);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .username {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .message-content {
+            color: var(--text-primary);
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            padding: 5px;
+        }
+
+        .message:hover .delete-btn {
+            opacity: 1;
+        }
+
+        #message-form {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+        }
+
+        input[type="text"] {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            input[type="text"]:focus {
+                border-color: var(--primary-color);
+            }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: var(--primary-color);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+            button:hover {
+                background-color: #1557b0;
+            }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+            .btn-secondary:hover {
+                background: #e8e9ea;
+            }
+
+        .btn-danger {
+            background: var(--danger-color);
+        }
+
+            .btn-danger:hover {
+                background: #c82333;
+            }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+        }
+
+        .confirm-dialog-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .notification-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 16px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 24px;
+        }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 16px;
+                width: 16px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+
+        input:checked + .slider {
+            background-color: var(--success-color);
+        }
+
+            input:checked + .slider:before {
+                transform: translateX(16px);
+            }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message {
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-container">
+        <h2>チャットにログイン</h2>
+        <form id="login-form">
+            <input type="text" id="username-input" placeholder="ユーザー名を入力" required minlength="2" maxlength="20">
+            <button type="submit">参加する</button>
+        </form>
+    </div>
+
+    <div id="chat-interface" class="app-container">
+        <div class="chat-header">
+            <div class="user-controls">
+                <span id="current-user"></span>
+                <button id="change-username-btn" class="btn-secondary">
+                    <i class="fas fa-user-edit"></i> 名前を変更
+                </button>
+                <div class="notification-toggle">
+                    <label class="switch">
+                        <input type="checkbox" id="notification-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span>通知</span>
+                </div>
+                <button id="clear-all-btn" class="btn-danger">
+                    <i class="fas fa-trash-alt"></i> 全削除
+                </button>
+            </div>
+        </div>
+        <div id="chat-container"></div>
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="メッセージを入力..." required>
+            <button type="submit">
+                <i class="fas fa-paper-plane"></i> 送信
+            </button>
+        </form>
+    </div>
+
+    <div id="username-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>ユーザー名の変更</h3>
+            </div>
+            <form id="change-username-form">
+                <input type="text" id="new-username-input" placeholder="新しいユーザー名" required minlength="2" maxlength="20">
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancel-username-change">キャンセル</button>
+                    <button type="submit">変更する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="confirm-dialog" class="confirm-dialog">
+        <p>本当に削除しますか？</p>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="cancel-delete">キャンセル</button>
+            <button type="button" class="btn-danger" id="confirm-delete">削除</button>
+        </div>
+    </div>
+    <div id="confirm-dialog-backdrop" class="confirm-dialog-backdrop"></div>
+
+    <div id="clear-all-dialog" class="confirm-dialog">
+        <p>本当にすべてのメッセージを削除しますか？</p>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="cancel-clear-all">キャンセル</button>
+            <button type="button" class="btn-danger" id="confirm-clear-all">全て削除</button>
+        </div>
+    </div>
+</body>
+<script>
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbw8dXhHZ1gdkvTXeB5Bpb-h77JrfM3dJ9faYVk-aG_lm2GfiFXeYU2AizoKYgzw8xHb/exec';
+
+    const loginContainer = document.getElementById('login-container');
+    const chatInterface = document.getElementById('chat-interface');
+    const loginForm = document.getElementById('login-form');
+    const chatContainer = document.getElementById('chat-container');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const currentUserDisplay = document.getElementById('current-user');
+    const usernameModal = document.getElementById('username-modal');
+    const changeUsernameBtn = document.getElementById('change-username-btn');
+    const changeUsernameForm = document.getElementById('change-username-form');
+    const cancelUsernameChange = document.getElementById('cancel-username-change');
+    const notificationToggle = document.getElementById('notification-toggle');
+    const confirmDialog = document.getElementById('confirm-dialog');
+    const confirmDialogBackdrop = document.getElementById('confirm-dialog-backdrop');
+    const cancelDelete = document.getElementById('cancel-delete');
+    const confirmDelete = document.getElementById('confirm-delete');
+    const clearAllBtn = document.getElementById('clear-all-btn');
+    const clearAllDialog = document.getElementById('clear-all-dialog');
+    const cancelClearAll = document.getElementById('cancel-clear-all');
+    const confirmClearAll = document.getElementById('confirm-clear-all');
+
+    let currentUsername = '';
+    const displayedMessages = new Set();
+    let lastTimestamp = '';
+    let notificationPermission = false;
+    let pendingDeleteMessage = null;
+
+    // 通知設定の読み込みと初期化
+    function initializeNotificationSettings() {
+        const notificationEnabled = localStorage.getItem('notificationEnabled') === 'true';
+        notificationToggle.checked = notificationEnabled;
+        if (notificationEnabled && 'Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                notificationPermission = permission === 'granted';
+            });
+        }
+    }
+
+    // 通知設定の保存
+    notificationToggle.addEventListener('change', async (e) => {
+        const isEnabled = e.target.checked;
+        localStorage.setItem('notificationEnabled', isEnabled);
+
+        if (isEnabled && 'Notification' in window) {
+            const permission = await Notification.requestPermission();
+            notificationPermission = permission === 'granted';
+            if (!notificationPermission) {
+                e.target.checked = false;
+                localStorage.setItem('notificationEnabled', false);
+            }
+        }
+    });
+
+    // 通知を表示
+    function showNotification(username, message) {
+        if (notificationToggle.checked &&
+            notificationPermission &&
+            document.hidden &&
+            username !== currentUsername) {
+            new Notification('新しいメッセージ', {
+                body: `${username}: ${message}`,
+                icon: '/favicon.ico'
+            });
+        }
+    }
+
+    // 削除確認ダイアログの表示
+    function showDeleteConfirmDialog(messageId, timestamp) {
+        confirmDialog.style.display = 'block';
+        confirmDialogBackdrop.style.display = 'block';
+        pendingDeleteMessage = { messageId, timestamp };
+    }
+
+    // 削除確認ダイアログを閉じる
+    function hideDeleteConfirmDialog() {
+        confirmDialog.style.display = 'none';
+        confirmDialogBackdrop.style.display = 'none';
+        pendingDeleteMessage = null;
+    }
+
+    // 全削除確認ダイアログの表示
+    function showClearAllConfirmDialog() {
+        clearAllDialog.style.display = 'block';
+        confirmDialogBackdrop.style.display = 'block';
+    }
+
+    // 全削除確認ダイアログを閉じる
+    function hideClearAllConfirmDialog() {
+        clearAllDialog.style.display = 'none';
+        confirmDialogBackdrop.style.display = 'none';
+    }
+
+    changeUsernameBtn.addEventListener('click', () => {
+        usernameModal.style.display = 'flex';
+        document.getElementById('new-username-input').value = currentUsername;
+    });
+
+    cancelUsernameChange.addEventListener('click', () => {
+        usernameModal.style.display = 'none';
+    });
+
+    clearAllBtn.addEventListener('click', () => {
+        showClearAllConfirmDialog();
+    });
+
+    cancelClearAll.addEventListener('click', () => {
+        hideClearAllConfirmDialog();
+    });
+
+    confirmClearAll.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${SHEET_URL}?action=clearAll`, {
+                method: 'GET'
+            });
+
+            if (response.ok) {
+                chatContainer.innerHTML = '';
+                displayedMessages.clear();
+                lastTimestamp = '';
+            }
+        } catch (error) {
+            console.error('Error clearing messages:', error);
+        }
+        hideClearAllConfirmDialog();
+    });
+
+    changeUsernameForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const newUsername = document.getElementById('new-username-input').value.trim();
+        if (newUsername && newUsername !== currentUsername) {
+            currentUsername = newUsername;
+            localStorage.setItem('username', currentUsername);
+            currentUserDisplay.textContent = `${currentUsername}としてログイン中`;
+            usernameModal.style.display = 'none';
+        }
+    });
+
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const usernameInput = document.getElementById('username-input');
+        currentUsername = usernameInput.value.trim();
+        localStorage.setItem('username', currentUsername);
+        showChatInterface();
+        initializeNotificationSettings();
+    });
+
+    function showChatInterface() {
+        loginContainer.style.display = 'none';
+        chatInterface.style.display = 'flex';
+        currentUserDisplay.textContent = `${currentUsername}としてログイン中`;
+        fetchMessages();
+    }
+
+    window.addEventListener('load', () => {
+        const savedUsername = localStorage.getItem('username');
+        if (savedUsername) {
+            currentUsername = savedUsername;
+            showChatInterface();
+            initializeNotificationSettings();
+        }
+    });
+
+    cancelDelete.addEventListener('click', hideDeleteConfirmDialog);
+
+    confirmDelete.addEventListener('click', async () => {
+        if (pendingDeleteMessage) {
+            const messageElement = document.querySelector(
+                `[data-message-id="${pendingDeleteMessage.messageId}"]`
+            );
+            if (messageElement) {
+                messageElement.classList.add('fade-out');
+                try {
+                    const response = await fetch(
+                        `${SHEET_URL}?action=delete&timestamp=${encodeURIComponent(pendingDeleteMessage.timestamp)}`,
+                        { method: 'GET' }
+                    );
+
+                    if (response.ok) {
+                        // アニメーション完了後に要素を削除
+                        setTimeout(() => {
+                            messageElement.remove();
+                            displayedMessages.delete(pendingDeleteMessage.messageId);
+                        }, 300);
+                    }
+                } catch (error) {
+                    console.error('Error deleting message:', error);
+                    messageElement.classList.remove('fade-out');
+                }
+            }
+        }
+        hideDeleteConfirmDialog();
+    });
+
+    async function deleteMessage(messageId, timestamp) {
+        showDeleteConfirmDialog(messageId, timestamp);
+    }
+
+    messageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        const timestamp = new Date().toISOString();
+        const messageId = `${timestamp}-${currentUsername}-${message}`;
+
+        addMessageToUI(message, timestamp, currentUsername, 'sent', messageId);
+        messageInput.value = '';
+
+        try {
+            await fetch(SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    timestamp: timestamp,
+                    username: currentUsername
+                })
+            });
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    });
+
+    function addMessageToUI(message, timestamp, username, type, messageId) {
+        if (displayedMessages.has(messageId)) {
+            return;
+        }
+
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', type);
+        messageElement.dataset.messageId = messageId;
+
+        const usernameElement = document.createElement('div');
+        usernameElement.classList.add('username');
+        usernameElement.textContent = username;
+
+        const messageContent = document.createElement('div');
+        messageContent.classList.add('message-content');
+        messageContent.textContent = message;
+
+        const timestampElement = document.createElement('div');
+        timestampElement.classList.add('timestamp');
+        timestampElement.textContent = new Date(timestamp).toLocaleString();
+
+        const deleteButton = document.createElement('button');
+        deleteButton.classList.add('delete-btn');
+        deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+        deleteButton.onclick = () => deleteMessage(messageId, timestamp);
+
+        messageElement.appendChild(usernameElement);
+        messageElement.appendChild(messageContent);
+        messageElement.appendChild(timestampElement);
+        messageElement.appendChild(deleteButton);
+        chatContainer.appendChild(messageElement);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        displayedMessages.add(messageId);
+
+        showNotification(username, message);
+    }
+
+    async function fetchMessages() {
+        try {
+            const response = await fetch(SHEET_URL);
+            const messages = await response.json();
+
+            messages.forEach(msg => {
+                if (msg.timestamp > lastTimestamp) {
+                    const messageId = `${msg.timestamp}-${msg.username}-${msg.message}`;
+                    addMessageToUI(
+                        msg.message,
+                        msg.timestamp,
+                        msg.username,
+                        msg.username === currentUsername ? 'sent' : 'received',
+                        messageId
+                    );
+                }
+            });
+
+            if (messages.length > 0) {
+                lastTimestamp = messages[messages.length - 1].timestamp;
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    }
+
+    setInterval(fetchMessages, 2000);
+</script>
+</html>
